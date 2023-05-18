@@ -32,9 +32,20 @@ async function run() {
       await client.connect();
       
       const toyGalleryCollection = client.db('electronicToyDB').collection('toyGallery')
+      const allToyCollection = client.db('electronicToyDB').collection('electronicToys')
 
+
+    //   Toy Gallery 
       app.get('/toyGallery', async (req, res) => {
           const result = await toyGalleryCollection.find().toArray()
+          res.send(result)
+      })
+
+    //   all toy
+      
+      app.post('/toys', async (req, res) => {
+          const toys = req.body;
+          const result = await allToyCollection.insertOne(toys)
           res.send(result)
       })
     // Send a ping to confirm a successful connection
