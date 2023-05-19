@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express()
 const port = process.env.PORT || 5000;
@@ -29,47 +29,89 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-      await client.connect();
-      
-      const toyGalleryCollection = client.db('electronicToyDB').collection('toyGallery')
-      const allToyCollection = client.db('electronicToyDB').collection('electronicToys')
+    await client.connect();
+
+    const toyGalleryCollection = client.db('electronicToyDB').collection('toyGallery')
+    const allToyCollection = client.db('electronicToyDB').collection('electronicToys')
 
 
     //   Toy Gallery 
-      app.get('/toyGallery', async (req, res) => {
-          const result = await toyGalleryCollection.find().toArray()
-          res.send(result)
-      })
+    app.get('/toyGallery', async (req, res) => {
+      const result = await toyGalleryCollection.find().toArray()
+      res.send(result)
+    })
 
 
 
     //   all toy
-      
-      app.get('/toys', async (req, res) => {
-          const result = await allToyCollection.find().toArray();
-          res.send(result)
-      })
 
-      app.get('/toys/:text', async (req, res) => {
-          const text = req.params.text;
-          console.log(text);
-          if (text === 'Electronic Pets' || text==='Robots' || text === 'Dance Mats') {
-              const result = await allToyCollection.find({
-                SubCategory: text}).toArray();
-              res.send(result)
-          }
-          
-      })
+    app.get('/toys', async (req, res) => {
+      let query = {};
+      if (req.query?.sellerEmail) {
+        query = { sellerEmail: req.query.sellerEmail }
+        const result = await allToyCollection.find(query).toArray()
+        return res.send(result)
+      } else {
+        const result = await allToyCollection.find().toArray();
+        res.send(result)
+      }
+
+    })
 
 
-      
-      app.post('/toys', async (req, res) => {
-          const toys = req.body;
-          const result = await allToyCollection.insertOne(toys)
-          res.send(result)
-      })
 
-      
+    app.get('/toys/:text', async (req, res) => {
+      const text = req.params.text;
+      // console.log(text);
+      if (text === 'Electronic Pets' || text === 'Robots' || text === 'Dance Mats') {
+        const result = await allToyCollection.find({
+          SubCategory: text
+        }).toArray();
+        return res.send(result)
+      } else {
+        const query = { _id: new ObjectId(text) }
+        const result = await allToyCollection.findOne(query)
+        res.send(result)
+      }
+
+    })
+
+
+
+
+    app.post('/toys', async (req, res) => {
+      const toys = req.body;
+      const result = await allToyCollection.insertOne(toys)
+      res.send(result)
+    })
+
+
+    app.put('/toys/:id', async (req, res) => {
+      const id = req.params.id;
+      const toyData = req.body;
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true };
+      const updatedToy = {
+        $set: {
+          price: toyData.price,
+          description: toyData.description,
+          quantity: toyData.quantity
+        },
+      };
+      const result = await allToyCollection.updateOne(filter, updatedToy, options)
+      res.send(result)
+    })
+
+
+    app.delete('/toys/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await allToyCollection.deleteOne(query)
+      res.send(result)
+
+    })
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -82,9 +124,9 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send("Electronic toy world server site is running")
+  res.send("Electronic toy world server site is running")
 })
 
 app.listen(port, () => {
-    console.log(`Electronic toy world is running on port : ${port}`);
+  console.log(`Electronic toy world is running on port : ${port}`);
 })
