@@ -44,35 +44,33 @@ async function run() {
 
 
     //   all toy
-
     app.get('/toys', async (req, res) => {
+      const result = await allToyCollection.find().toArray();
+      res.send(result)
+    })
+
+    app.get('/myToys', async (req, res) => {
       let query = {};
       if (req.query?.sellerEmail) {
         query = { sellerEmail: req.query.sellerEmail }
-        const result = await allToyCollection.find(query).toArray()
-        return res.send(result)
-      } else {
-        const result = await allToyCollection.find().toArray();
-        res.send(result)
+
+      } else if (req.query.SubCategory) {
+        query = { SubCategory: req.query.SubCategory }
+
       }
+      const result = await allToyCollection.find(query).toArray()
+      res.send(result)
 
     })
 
 
 
-    app.get('/toys/:text', async (req, res) => {
-      const text = req.params.text;
-      // console.log(text);
-      if (text === 'Electronic Pets' || text === 'Robots' || text === 'Dance Mats') {
-        const result = await allToyCollection.find({
-          SubCategory: text
-        }).toArray();
-        return res.send(result)
-      } else {
-        const query = { _id: new ObjectId(text) }
-        const result = await allToyCollection.findOne(query)
-        res.send(result)
-      }
+    app.get('/toys/:id', async (req, res) => {
+      const text = req.params.id;
+      const query = { _id: new ObjectId(text) }
+      const result = await allToyCollection.findOne(query)
+      res.send(result)
+
 
     })
 
