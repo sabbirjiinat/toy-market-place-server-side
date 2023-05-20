@@ -1,8 +1,8 @@
 const express = require('express');
+const app = express()
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
-const app = express()
 const port = process.env.PORT || 5000;
 
 
@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 app.use(cors())
 app.use(express.json())
 
-// electronicToy  PJRUfVWsYg9S792C
+
 
 
 
@@ -23,16 +23,29 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  maxPoolSize:10,
 });
 
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    await client.connect((error) => {
+      if (error) {
+        console.log(error)
+        return;
+      }
+    });
 
     const toyGalleryCollection = client.db('electronicToyDB').collection('toyGallery')
     const allToyCollection = client.db('electronicToyDB').collection('electronicToys')
+    const TrendingToyCollection = client.db('electronicToyDB').collection('TrendingToy')
+
+    const indexKey = { name: 1 }
+    const indexOption = { names: 'toyName' }
+    const results = await allToyCollection.createIndex(indexKey, indexOption)
 
 
     //   Toy Gallery 
@@ -42,9 +55,12 @@ async function run() {
     })
 
 
-    const indexKey = { name: 1 }
-    const indexOption = { names: 'toyName' }
-    await allToyCollection.createIndex(indexKey, indexOption)
+ 
+      //   all toy
+      app.get('/toys', async (req, res) => {
+        const result = await allToyCollection.find().limit(20).toArray();
+        res.send(result)
+      })
 
     app.get('/searchByName/:text', async (req, res) => {
       const text = req.params.text;
@@ -56,19 +72,15 @@ async function run() {
 
 
 
-    //   all toy
-    app.get('/toys', async (req, res) => {
-      const result = await allToyCollection.find().toArray();
-      res.send(result)
-    })
+  
 
     app.get('/myToys', async (req, res) => {
       let query = {};
       if (req.query?.sellerEmail) {
-        query = { sellerEmail: req.query.sellerEmail }
+        query = { sellerEmail: req.query?.sellerEmail }
 
-      } else if (req.query.SubCategory) {
-        query = { SubCategory: req.query.SubCategory }
+      } else if (req.query?.SubCategory) {
+        query = { SubCategory: req.query?.SubCategory }
 
       }
       const result = await allToyCollection.find(query).toArray()
@@ -122,13 +134,18 @@ async function run() {
 
     })
 
+    app.get('/trending', async (req, res) => {
+      const result = await TrendingToyCollection.find().toArray()
+      res.send(result)
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
+  //  await client.close(); 
   }
 }
 run().catch(console.dir);
