@@ -24,28 +24,19 @@ const client = new MongoClient(uri, {
     strict: true,
     deprecationErrors: true,
   },
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  maxPoolSize:10,
+
 });
 
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect((error) => {
-      if (error) {
-        console.log(error)
-        return;
-      }
-    });
+    // await client.connect();
 
     const toyGalleryCollection = client.db('electronicToyDB').collection('toyGallery')
     const allToyCollection = client.db('electronicToyDB').collection('electronicToys')
     const TrendingToyCollection = client.db('electronicToyDB').collection('TrendingToy')
 
-    const indexKey = { name: 1 }
-    const indexOption = { names: 'toyName' }
-    const results = await allToyCollection.createIndex(indexKey, indexOption)
+
 
 
     //   Toy Gallery 
@@ -55,16 +46,23 @@ async function run() {
     })
 
 
- 
-      //   all toy
-      app.get('/toys', async (req, res) => {
-        const result = await allToyCollection.find().limit(20).toArray();
-        res.send(result)
-      })
+
+    //   all toy
+    app.get('/toys', async (req, res) => {
+      const result = await allToyCollection.find().limit(20).toArray();
+      const options = {
+
+        sort: {price: -1 },
+
+      };
+      res.send(result,options)
+    })
 
     app.get('/searchByName/:text', async (req, res) => {
       const text = req.params.text;
-      const result = await allToyCollection.find({
+      const indexKey = { name: 1 }
+      const indexOption = { names: 'toyName' }
+      const result = await allToyCollection.createIndex(indexKey, indexOption).find({
         name: { $regex: text, $options: 'i' }
       }).toArray()
       res.send(result)
@@ -72,7 +70,7 @@ async function run() {
 
 
 
-  
+
 
     app.get('/myToys', async (req, res) => {
       let query = {};
@@ -144,8 +142,9 @@ async function run() {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
+
     // Ensures that the client will close when you finish/error
-  //  await client.close(); 
+    //  await client.close(); 
   }
 }
 run().catch(console.dir);
@@ -158,3 +157,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Electronic toy world is running on port : ${port}`);
 })
+
+
