@@ -49,27 +49,16 @@ async function run() {
 
     //   all toy
     app.get('/toys', async (req, res) => {
-      const result = await allToyCollection.find().limit(20).toArray();
+      const sort = req.query.sort;
+      const search = req.query.search;
+      const query = { name: { $regex: search, $options: 'i' } }
       const options = {
-
-        sort: {price: -1 },
-
+        sort: { "price": sort === 'asc' ? 1 : -1 },
       };
-      res.send(result,options)
-    })
+      const result = await allToyCollection.find(query, options).limit(20).toArray();
 
-    app.get('/searchByName/:text', async (req, res) => {
-      const text = req.params.text;
-      const indexKey = { name: 1 }
-      const indexOption = { names: 'toyName' }
-      const result = await allToyCollection.createIndex(indexKey, indexOption).find({
-        name: { $regex: text, $options: 'i' }
-      }).toArray()
       res.send(result)
     })
-
-
-
 
 
     app.get('/myToys', async (req, res) => {
